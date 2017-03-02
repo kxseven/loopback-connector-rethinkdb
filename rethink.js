@@ -505,7 +505,6 @@ RethinkDB.prototype._observe = function (model, filter, options, callback) {
             .or(c.hasFields("new_offset").and(c('new_offset').gt(filter.skip - 1)));
       })
     }
-    console.log(promise.toString());
 
     try {
       promise.run(client).then(function (res) {
