@@ -245,7 +245,7 @@ RethinkDB.prototype.automigrate = _.debounce(function (models, done) {
           cb();
         }
       }, function (err) {
-        if (err) return done(e);
+        if (err) return done(err);
         _this.autoupdate(models, done);
       });
     });
