@@ -1,4 +1,5 @@
-/* jshint sub: true */
+'use strict';
+
 const r = require('rethinkdbdash')();
 const moment = require('moment');
 const async = require('async');
