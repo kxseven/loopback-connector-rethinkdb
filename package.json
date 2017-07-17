@@ -13,6 +13,7 @@
     "loopback-connector": "^4.0.0",
     "moment": "^2.10.2",
     "rethinkdb": "2.3.3",
+    "rethinkdbdash": "2.3.29",
     "rx": "4.1.0"
   },
   "devDependencies": {

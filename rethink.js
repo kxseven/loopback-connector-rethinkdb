@@ -1,5 +1,5 @@
 /* jshint sub: true */
-var r = require('rethinkdb');
+var r = require('rethinkdbdash')();
 var moment = require('moment');
 var async = require('async');
 var _ = require('lodash');
@@ -167,31 +167,27 @@ RethinkDB.prototype.autoupdate = function (models, cb) {
         debug('create indexes: ', indexList);
       }
 
-      r.db(_this.database).table(_this.tableName(model)).indexList().run(_this.db, function (error, cursor) {
+      r.db(_this.database).table(_this.tableName(model)).indexList().run(_this.db, function (error, alreadyPresentIndexes) {
         if (error) return cb(error);
 
-        cursor.toArray(function (error, alreadyPresentIndexes) {
-          if (error) return cb(error);
+        async.each(indexList, function (index, indexCallback) {
+          if (_this.debug) {
+            debug('createIndex: ', index);
+          }
 
-          async.each(indexList, function (index, indexCallback) {
-            if (_this.debug) {
-              debug('createIndex: ', index);
-            }
+          if (alreadyPresentIndexes.includes(index.name)) {
+            return indexCallback();
+          }
 
-            if (alreadyPresentIndexes.includes(index.name)) {
-              return indexCallback();
-            }
+          var query = r.db(_this.database).table(_this.tableName(model));
+          var keys = Object.keys(index.fields || index.keys).map(function (key) {
+            return _this.getRow(model, key);
+          });
+          query = query.indexCreate(index.name, keys.length === 1 ? keys[0] : keys, index.options);
+          query.run(_this.db, indexCallback);
 
-            var query = r.db(_this.database).table(_this.tableName(model));
-            var keys = Object.keys(index.fields || index.keys).map(function (key) {
-              return _this.getRow(model, key);
-            });
-            query = query.indexCreate(index.name, keys.length === 1 ? keys[0] : keys, index.options);
-            query.run(_this.db, indexCallback);
-            
-          }, modelCallback);
+        }, modelCallback);
 
-        });
       });
     }, cb);
   } else {
@@ -225,77 +221,31 @@ RethinkDB.prototype.automigrate = _.debounce(function (models, done) {
 
   models = _.uniq(models || Object.keys(_this._models));
 
-  r.db(_this.database).tableList().run(client, function (error, cursor) {
+  r.db(_this.database).tableList().run(client, function (error, list) {
     if (error) {
       return done(error);
     }
     var migratedTables = [];
-    cursor.toArray(function (error, list) {
-      async.eachSeries(models, function (model, cb) {
-        const tableName = _this.tableName(model);
-        if (migratedTables.indexOf(tableName) === -1) {
-          migratedTables.push(tableName);
-          r.db(_this.database).tableDrop(tableName).run(client, function (error) {
-            r.db(_this.database).tableCreate(tableName).run(client, function (error) {
-              if (error) return cb(error);
-              cb();
-            });
+
+    async.eachSeries(models, function (model, cb) {
+      const tableName = _this.tableName(model);
+      if (migratedTables.indexOf(tableName) === -1) {
+        migratedTables.push(tableName);
+        r.db(_this.database).tableDrop(tableName).run(client, function (error) {
+          r.db(_this.database).tableCreate(tableName).run(client, function (error) {
+            if (error) return cb(error);
+            cb();
           });
-        } else {
-          cb();
-        }
-      }, function (err) {
-        if(err) return done(e);
-        _this.autoupdate(models, done);
-      });
+        });
+      } else {
+        cb();
+      }
+    }, function (err) {
+      if (err) return done(e);
+      _this.autoupdate(models, done);
     });
   });
 }, 4000);
-
-// checks if database needs to be actualized
-RethinkDB.prototype.isActual = function (cb) {
-  var _this = this;
-  var client = this.db;
-
-  r.db(_this.database).tableList().run(client, function (error, cursor) {
-    if (error) return cb(error);
-    if (!cursor.next()) return cb(null, _.isEmpty(_this._models));
-
-    cursor.toArray(function (error, list) {
-      if (error) {
-        return cb(error);
-      }
-      var actual = true;
-      async.each(Object.keys(_this._models), function (model, cb2) {
-        if (!actual) return cb2();
-
-        var properties = _this._models[model].properties;
-        var settings = _this._models[model].settings;
-        var indexCollection = _.extend({}, properties, settings);
-        if (list.indexOf(model) < 0) {
-          actual = false;
-          cb2();
-        } else {
-          r.db(_this.database).table(_this.tableName(model)).indexList().run(client, function (error, cursor) {
-            if (error) return cb2(error);
-
-            cursor.toArray(function (error, list) {
-              if (error || !actual) return cb2(error);
-
-              Object.keys(indexCollection).forEach(function (property) {
-                if (_hasIndex(_this, model, property) && list.indexOf(property) < 0)
-                  actual = false;
-              });
-              cb2();
-            });
-          });
-        }
-      }, function (err) {
-        cb(err, actual);
-      });
-    });
-  });
-};
 
 RethinkDB.prototype.create = function (model, data, callback) {
   var idValue = this.getIdValue(model, data);
@@ -504,14 +454,14 @@ RethinkDB.prototype.changeFeed = function (model, filter, options) {
   if (!_.isEmpty(filter.fields)) {
     promise = _this.buildPluck(model, filter.fields, promise);
   }
-  
+
   if (filter.limit) {
     promise = promise.limit(filter.limit);
   }
 
   var defaultOptions = {
     changesOptions: {
-      include_states: true,
+      includeStates: true,
     },
   };
 
@@ -549,7 +499,7 @@ RethinkDB.prototype.changeFeed = function (model, filter, options) {
     promise.run(client).then(function (res) {
       feed = res;
       var isReady = false;
-      feed.eachAsync(function (item) {
+      return feed.eachAsync(function (item) {
         if (item.state === 'ready') {
           isReady = true;
           sendResults();
@@ -634,7 +584,7 @@ RethinkDB.prototype.all = function all(model, filter, options, callback) {
   if (!_.isEmpty(filter.fields)) {
     promise = _this.buildPluck(model, filter.fields, promise);
   }
-  
+
   if (filter.limit) {
     promise = promise.limit(filter.limit);
   }
@@ -643,42 +593,36 @@ RethinkDB.prototype.all = function all(model, filter, options, callback) {
 
   // console.log(rQuery)
 
-  promise.run(client, function (error, cursor) {
-    if (error || !cursor) {
-      return callback(error, null);
+  promise.run(client, function (err, data) {
+    if (err) {
+      return callback(err);
     }
 
     var _keys = _this._models[model].properties;
     var _model = _this._models[model].model;
 
-    cursor.toArray(function (err, data) {
-      if (err) {
-        return callback(err);
+    data.forEach(function (element, index) {
+      if (element['id'] && idName !== 'id') {
+        element[idName] = element['id'];
+        delete element['id'];
       }
-
-      data.forEach(function (element, index) {
-        if (element['id'] && idName !== 'id') {
-          element[idName] = element['id'];
-          delete element['id'];
-        }
-        _expandResult(element, _keys);
-      });
-
-      if (process.env.TESTING) {
-        data = data.map(function (item) {
-          delete item._createdAt;
-          return item;
-        });
-      }
-
-      if (filter && filter.include) {
-        _this._models[model].model.include(data, filter.include, function (err, data) {
-          callback(err, data);
-        });
-      } else {
-        callback && callback(null, data, rQuery);
-      }
+      _expandResult(element, _keys);
     });
+
+    if (process.env.TESTING) {
+      data = data.map(function (item) {
+        delete item._createdAt;
+        return item;
+      });
+    }
+
+    if (filter && filter.include) {
+      _this._models[model].model.include(data, filter.include, function (err, data) {
+        callback(err, data);
+      });
+    } else {
+      callback && callback(null, data, rQuery);
+    }
   });
 };
 
