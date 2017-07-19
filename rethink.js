@@ -1,6 +1,5 @@
 'use strict';
 
-const r = require('rethinkdbdash')();
 const moment = require('moment');
 const async = require('async');
 const _ = require('lodash');
@@ -9,10 +8,18 @@ const Rx = require('rx');
 
 const Connector = require('loopback-connector').Connector;
 
-exports.initialize = function initializeDataSource(dataSource, callback) {
-	if (!r) return;
+let r = null;
 
+exports.initialize = function initializeDataSource(dataSource, callback) {
 	const s = dataSource.settings;
+
+	const rethinkdbdashSettings = Object.assign({
+		pool: false,
+		pingInterval: 120
+	}, s.rethinkdbdash);
+
+	r = require('rethinkdbdash')(rethinkdbdashSettings);
+
 
 	if (dataSource.settings.rs) {
 		s.rs = dataSource.settings.rs;
