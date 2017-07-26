@@ -1,5 +1,6 @@
 'use strict';
 
+const rethinkdbdash = require('rethinkdbdash');
 const moment = require('moment');
 const async = require('async');
 const _ = require('lodash');
