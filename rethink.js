@@ -1,5 +1,3 @@
-'use strict';
-
 const rethinkdbdash = require('rethinkdbdash');
 const moment = require('moment');
 const async = require('async');
@@ -223,7 +221,7 @@ class RethinkDB extends Connector {
 
 	autoupdate(models, cb) {
 		const _this = this;
-		if (_this.db) {
+		this.getConnectionInstance().then(() => {
 			if (_this.debug) {
 				debug('autoupdate');
 			}
@@ -308,11 +306,7 @@ class RethinkDB extends Connector {
 				},
 				cb
 			);
-		} else {
-			_this.dataSource.once('connected', () => {
-				_this.autoupdate(models, cb);
-			});
-		}
+		});
 	}
 
 	create(model, data, callback) {
@@ -992,9 +986,9 @@ class RethinkDB extends Connector {
 			(row, prop, index) => {
 				partialPath.push(prop);
 				const propDef = _this.getNestedPropertyDefinition(
-						model,
-						partialPath.join('.')
-					) || {};
+					model,
+					partialPath.join('.')
+				) || {};
 
 				if (Array.isArray(propDef) || Array.isArray(propDef.type)) {
 					const _relativePath = props.slice(index + 1);
