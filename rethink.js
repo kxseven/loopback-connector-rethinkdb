@@ -379,6 +379,8 @@ class RethinkDB extends Connector {
 	save(model, data, callback, strict, returnObject) {
 		const _this = this;
 
+		callback = _.isFunction(callback) ? callback : strict;
+
 		const save = client => {
 			let idValue = _this.getIdValue(model, data);
 			const idName = _this.idName(model);
