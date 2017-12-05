@@ -897,10 +897,10 @@ class RethinkDB extends Connector {
 		);
 		if (row.toString().includes('contains(')) return row;
 
-		return _this.applyOperator(row, operator, criteria);
+		return _this.applyOperator(row, operator, criteria, key);
 	}
 
-	applyOperator(row, operator, criteria) {
+	applyOperator(row, operator, criteria, key) {
 		const operators = {
 			between(row, value) {
 				return row.gt(value[0]).and(row.lt(value[1]));
@@ -923,6 +923,10 @@ class RethinkDB extends Connector {
 			},
 			inq(row, value) {
 				const query = [];
+
+        if (!value.length) {
+          value.push('');
+        }
 
 				value.forEach(v => {
 					query.push(row.eq(v));
@@ -960,6 +964,11 @@ class RethinkDB extends Connector {
 		if (operators[operator]) {
 			return operators[operator](row, criteria);
 		}
+
+    if (criteria === null) {
+      return this.r.row.hasFields(key).not();
+    }
+    
 		return row.eq(criteria);
 	}
 
