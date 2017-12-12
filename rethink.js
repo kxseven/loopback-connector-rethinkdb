@@ -324,7 +324,7 @@ class RethinkDB extends Connector {
 			data._createdAt = new Date();
 		}
 
-		this.save(model, data, null, callback, true);
+		this.save(model, data, {strict: true}, callback);
 	}
 
 	update(
@@ -373,15 +373,16 @@ class RethinkDB extends Connector {
 			idName !== 'id' && delete data[idName];
 		}
 
-		this.save(model, data, null, callback, false, true);
+		this.save(model, data, {strict: false, returnObject: true}, callback);
 	}
 
-	save(model, data, options, callback, strict, returnObject) {
+	save(model, data, options, callback) {
 		const _this = this;
 
 		const save = client => {
 			let idValue = _this.getIdValue(model, data);
 			const idName = _this.idName(model);
+      let {strict, returnObject} = options;
 
 			if (typeof strict === 'undefined') {
 				strict = false;
