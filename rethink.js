@@ -1031,6 +1031,7 @@ function _expandResult(result, keys) {
 		if (
 			keys[key].type &&
 			keys[key].type.name === 'Date' &&
+      result[key] !== null &&
 			!(result[key] instanceof Date)
 		) {
 			// Expand date result data, backward compatible
