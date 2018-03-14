@@ -930,11 +930,12 @@ class RethinkDB extends Connector {
         }
 
 				value.forEach(v => {
+					console.log('v', v)
 					query.push(row.eq(v));
 				});
 
 				const condition = _.reduce(query, (sum, qq) => sum.or(qq));
-
+				console.log('condition', condition)
 				return condition;
 			},
 			nin(row, value) {
@@ -969,7 +970,7 @@ class RethinkDB extends Connector {
     if (criteria === null) {
       return this.r.row.hasFields(key).not();
     }
-    
+   		console.log('criteria', criteria)
 		return row.eq(criteria);
 	}
 
