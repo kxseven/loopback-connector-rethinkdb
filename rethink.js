@@ -933,7 +933,7 @@ class RethinkDB extends Connector {
 					console.log('v', v)
 					query.push(row.eq(v));
 				});
-
+				console.log('query', query)
 				const condition = _.reduce(query, (sum, qq) => sum.or(qq));
 				console.log('condition', condition)
 				return condition;
