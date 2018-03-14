@@ -931,7 +931,7 @@ class RethinkDB extends Connector {
 
 				value.forEach(v => {
 					console.log('v', v)
-					query.push(row.eq(v));
+					query.push(row.eq(v.toString()));
 				});
 				console.log('query', query)
 				const condition = _.reduce(query, (sum, qq) => sum.or(qq));
