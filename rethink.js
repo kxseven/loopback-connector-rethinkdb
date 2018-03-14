@@ -971,7 +971,7 @@ class RethinkDB extends Connector {
       return this.r.row.hasFields(key).not();
     }
    		console.log('criteria', criteria)
-		return row.eq(criteria);
+		return row.eq(criteria.toString());
 	}
 
 	getNestedPropertyDefinition(model, path) {
