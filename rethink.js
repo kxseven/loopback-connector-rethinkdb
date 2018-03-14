@@ -1070,5 +1070,7 @@ function _matchFn(k, cond) {
 }
 
 function _inqFn(k, cond) {
+	console.log('k', k)
+	console.log('cond', cond)
 	return row => r.expr(cond).contains(row(k));
 }
