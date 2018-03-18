@@ -970,7 +970,7 @@ class RethinkDB extends Connector {
     if (criteria === null) {
       return this.r.row.hasFields(key).not();
     }
-   		//console.log('criteria', criteria)
+   		console.log('criteria', criteria)
 		return row.eq(_.clone(criteria));
 	}
 
