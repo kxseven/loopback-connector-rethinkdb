@@ -930,12 +930,12 @@ class RethinkDB extends Connector {
         }
 
 				value.forEach(v => {
-					console.log('v', v)
-					query.push(row.eq(v.toString()));
+					//console.log('v', v)
+					query.push(row.eq(_.clone(v)));
 				});
 				//console.log('query', query)
 				const condition = _.reduce(query, (sum, qq) => sum.or(qq));
-				console.log('condition', condition)
+				//console.log('condition', condition)
 				return condition;
 			},
 			nin(row, value) {
