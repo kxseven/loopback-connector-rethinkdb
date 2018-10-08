@@ -373,7 +373,7 @@ class RethinkDB extends Connector {
 			idName !== 'id' && delete data[idName];
 		}
 
-		this.save(model, data, {strict: false, returnObject: true}, callback);
+		this.save(model, data, {strict: false, returnObject: true, upsert: false}, callback);
 	}
 
 	save(model, data, options, callback) {
@@ -382,11 +382,15 @@ class RethinkDB extends Connector {
 		const save = client => {
 			let idValue = _this.getIdValue(model, data);
 			const idName = _this.idName(model);
-      let {strict, returnObject} = options;
+            let {strict, returnObject} = options;
 
 			if (typeof strict === 'undefined') {
 				strict = false;
 			}
+
+            if (typeof upsert === 'undefined') {
+                upsert = false;
+            }
 
 			Object.keys(data).forEach(key => {
 				if (data[key] === undefined) {
@@ -398,6 +402,7 @@ class RethinkDB extends Connector {
 				.table(_this.tableName(model))
 				.insert(data, {
 					conflict: strict ? 'error' : 'update',
+                    upsert: upsert,
 					returnChanges: true
 				})
 				.run(client, (err, m) => {
