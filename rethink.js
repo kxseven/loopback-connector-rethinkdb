@@ -382,7 +382,7 @@ class RethinkDB extends Connector {
 		const save = client => {
 			let idValue = _this.getIdValue(model, data);
 			const idName = _this.idName(model);
-            let {strict, returnObject} = options;
+            let {strict, returnObject, upsert} = options;
 
 			if (typeof strict === 'undefined') {
 				strict = false;
